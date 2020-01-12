@@ -1,0 +1,124 @@
+# This docker-compose starts elasticsearch
+version: '2.2'
+
+services:
+  neo4j:
+    image: neo4j:3.3.0-enterprise
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    volumes:
+      - ./plugins:/plugins
+      - ./conf:/conf
+    environment:
+      NEO4J_AUTH: neo4j/xxx
+      NEO4J_dbms_logs_debug_level: DEBUG
+      # KAFKA related configuration
+      NEO4J_kafka_zookeeper_connect: zookeeper:12181
+      NEO4J_kafka_bootstrap_servers: kafka:19092
+      NEO4J_ACCEPT_LICENSE_AGREEMENT: "yes"
+  #      NEO4J_dbms_logs_query_threshold: 0s
+  #      NEO4J_dbms_logs_query_enabled: "true"
+  #      NEO4J_cypher_lenient__create__relationship: "true"
+  #      NEO4J_apoc_trigger_enabled: "true"
+  #      NEO4J_dbms_security_procedures_unrestricted: "apoc.*,algo.*"
+  #      NEO4J_dbms_logs_debug_level: DEBUG
+  #      NEO4J_dbms_memory_heap_max__size: 2G
+  #      NEO4J_dbms_memory_heap_initial__size: 1G
+  #      NEO4J_dbms_memory_pagecache_size: 1G
+  #      NEO4J_kafka_group_id: p2
+  #      NEO4J_streams_sink_topic_cypher_friends: "
+  #        MERGE (p1:Person { name: event.initiated })
+  #        MERGE (p2:Person { name: event.accepted })
+  #        CREATE (p1)-[:FRIENDS { when: event.date }]->(p2)
+  #      "
+  #      NEO4J_streams_sink_enabled: "true"
+  #      NEO4J_streams_procedures_enabled: "true"
+  #      NEO4J_streams_source_enabled: "false"
+  #      #NEO4J_streams_source_topic_nodes_recommendations: Recommendation{*}
+  #      #NEO4J_streams_source_schema_polling_interval: 10000
+  #      #NEO4J_kafka_acks: 1
+  #      #NEO4J_kafka_num_partitions: 1
+  #      #NEO4J_kafka_retries: 2
+  #      #NEO4J_kafka_batch_size: 16384
+  #      #NEO4J_kafka_buffer_memory: 33554432
+  #      #NEO4J_kafka_session_timeout_ms: 15000
+  #      #NEO4J_kafka_reindex_batch_size: 1000
+  #      #NEO4J_kafka_connection_timeout_ms: 10000
+  #      #NEO4J_kafka_replication: 1
+  #      #NEO4J_kafka_linger_ms: 1
+  #      #
+  #      # CONFLUENT CLOUD CONFIGURATION
+  #      # Use this block of configuration items out if you're using Confluent Cloud
+  #      NEO4J_kafka_ssl_endpoint_identification_algorithm: https
+  #      NEO4J_kafka_sasl_mechanism: PLAIN
+  #      NEO4J_kafka_request_timeout_ms: 20000
+  #      #NEO4J_kafka_bootstrap_servers: ${KAFKA_BOOTSTRAP_SERVERS}
+  #      NEO4J_kafka_retry_backoff_ms: 500
+  #      NEO4J_kafka_sasl_jaas_config: org.apache.kafka.common.security.plain.PlainLoginModule required username="${CONFLUENT_API_KEY}" password="${CONFLUENT_API_SECRET}";
+  #      NEO4J_kafka_security_protocol: SASL_SSL
+  #      # LOCAL KAFKA CONFIGURATION
+  #      # Uncomment this block of lines and configure correctly if you're using Kafka locally.
+  #      # NEO4J_kafka_zookeeper_connect: localhost:2181
+  #      # NEO4J_kafka_bootstrap_servers: localhost:9092
+
+  zookeeper:
+    container_name: zookeeper
+    image: confluentinc/cp-zookeeper:5.1.2
+    network_mode: host
+    ports:
+      - 2181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: on-failure
+    mem_limit: 512m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka:5.1.2
+    ports:
+      - 9092:9092
+      - 29092:29092
+    depends_on:
+      - zookeeper
+    network_mode: host
+    environment:
+      HOSTNAME_COMMAND: "hostname -I | awk '{print $$1}'"
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'localhost:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,EXT_PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,EXT_PLAINTEXT://${HOSTNAME_COMMAND}:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: PLAINTEXT://localhost:9092,EXT_PLAINTEXT://:29092
+      KAFKA_DELETE_TOPIC_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    restart: on-failure
+    mem_limit: 2048m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  kafka-rest:
+    image: confluentinc/cp-kafka-rest:5.1.2
+    depends_on:
+      - kafka
+    network_mode: host
+    environment:
+      KAFKA_REST_ZOOKEEPER_CONNECT: 'localhost:2181'
+      KAFKA_REST_LISTENERS: http://localhost:8082
+      KAFKA_REST_SCHEMA_REGISTRY_URL: http://localhost:8081
+      KAFKA_REST_HOST_NAME: localhost
+    restart: on-failure
+    mem_limit: 256m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+

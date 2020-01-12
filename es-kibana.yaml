@@ -1,0 +1,60 @@
+# This docker-compose starts elasticsearch
+version: '2.2'
+services:
+
+  elasticsearch_7_5_0:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.5.0
+    container_name: elasticsearch_7_5_0
+    environment:
+      - PATH=/usr/share/elasticsearch/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      - LANG=C.UTF-8 --env=JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64/jre
+      - JAVA_VERSION=8u111
+      - JAVA_DEBIAN_VERSION=8u111-b14-2~bpo8+1
+      - CA_CERTIFICATES_JAVA_VERSION=20140324
+      - GOSU_VERSION=1.7
+      - ELASTICSEARCH_VERSION=5.1.2
+      - ELASTICSEARCH_DEB_VERSION=5.1.2
+      - LOGS_PATH=/usr/share/elasticsearch/logs
+      - cluster.name=dl
+      - discovery.type=single-node
+      - path.repo=/usr/share/elasticsearch/data/snapshots
+      - bootstrap.memory_lock=true
+      - http.port=9200
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elastic7-data:/usr/share/elasticsearch/data
+    restart: on-failure
+    ports:
+      - 9200:9200
+      - 9300:9300
+    network_mode: host
+    mem_limit: 3072m
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  kibana_7_5_0:
+    container_name: kibana_7_5_0
+    image: docker.elastic.co/kibana/kibana:7.5.0
+    network_mode: host
+    restart: on-failure
+    ports:
+      - 5607:5601
+    mem_limit: 350m
+    environment:
+      - "SERVER_HOST=localhost"
+      - "SERVER_PORT=5607"
+      - "ELASTICSEARCH_HOSTS=http://0.0.0.0:9200"
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  elastic7-data:
+
